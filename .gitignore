@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Raw_Data/
+Results/
+Proc_data/
+List of files to include.txt
+Dataset_csv_columns.xlsx
+Supporting info- images/
