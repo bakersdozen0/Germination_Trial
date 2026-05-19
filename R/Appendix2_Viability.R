@@ -173,6 +173,23 @@ mod_TZ <- glmmTMB(cbind(Stained, Sum_tested - Stained) ~ Pop,
 mod_XR <- glmmTMB(cbind(Viable, X_ray_sample_size - Viable) ~ Pop,
                   family =  betabinomial(link="logit"), data = full_fam_germ)
 
+# --- Region-level Viability Models ---
+
+# FCT (Proportion) by Region
+mod_fct_region <- glmmTMB(FCT_percent_prop ~ Region + (1|Region:Pop),
+                          family = beta_family(),
+                          data = full_fam_germ)
+
+# XR Viability (Counts) by Region
+mod_XR_region <- glmmTMB(cbind(Viable, X_ray_sample_size - Viable) ~ Region + (1|Region:Pop),
+                         family = betabinomial(link="logit"), 
+                         data = full_fam_germ)
+
+# TZ Viability (Counts) by Region
+mod_TZ_region <- glmmTMB(cbind(Stained, Sum_tested - Stained) ~ Region + (1|Region:Pop),
+                         family = betabinomial(link="logit"), 
+                         data = full_fam_germ)
+
 ## Write list of models to iterate over for saving results: 
 models <- list(
   mod_fct = mod_fct,
@@ -180,7 +197,10 @@ models <- list(
   mod_fe = mod_fe,
   mod_logfe=mod_logfe,
   mod_TZ = mod_TZ,
-  mod_XR = mod_XR
+  mod_XR = mod_XR,
+  mod_fct_region=mod_fct_region,
+  mod_XR_region=mod_XR_region,
+  mod_TZ_region
 )
 
 ### Function for saving model results using sink()

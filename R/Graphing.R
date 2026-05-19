@@ -47,14 +47,14 @@ pop_map<-ggplot(data = uk_map) +
   theme(legend.position = "right",
         plot.title = element_text(hjust = 0.5),
         panel.border = element_rect(color = "black", fill=NA,linewidth = 1),
-        panel.background = element_rect(fill = "gray90", color = NA)) +
+        panel.background = element_rect(fill = "white", color = NA)) +
   coord_fixed(ratio = 1)  # Fix aspect ratio to ensure map is not squished
 
 # save output in results folder: 
 ggsave(
   filename = here("Results", "uk_population_map.png"),
   plot = pop_map,
-  width = 8, height = 6, dpi = 300,  bg = "white" )
+  width = 8, height = 8, dpi = 300,  bg = "white" )
 
 ## Figure 4: Functions to calculate cumulative germination over time from wide-format data: ####
 # Vector of regions to process
@@ -355,4 +355,3 @@ ca_family_trends_plot <- ggplot(ca_summary, aes(x = factor(CA_treat), y = germ_p
     y = "Mean Germination Rate"
   ) +
   theme_bw()
-ca_family_trends_plot

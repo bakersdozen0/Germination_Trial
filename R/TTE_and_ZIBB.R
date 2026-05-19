@@ -470,8 +470,8 @@ if (!file.exists(tte_data_path)) {
   
   tte_data <- melt_te(
     tte_data_wide,
-    count_cols = all_of(count_column_names),
-    treat_cols = all_of(id_column_names), # Explicitly define treatment/ID cols
+    count_cols = count_column_names,  # Removed all_of()
+    treat_cols = id_column_names,     # Removed all_of()
     n.subjects = tte_data_wide$Starting_number,
     monitimes = montimes
   )
@@ -497,6 +497,11 @@ complete_std_germ %>%
   summarise(max_cumulative = max(cumulative)) %>%
   print()
 
+## Drop CC treatment to allow model convergence
+tte_data <- tte_data %>% 
+  filter(Treatment != "C") %>% 
+  droplevels()
+
 
 ## use loop to fit models for all data, as well as data by Region, Treatment and Region*Treatment:
 fit_tte_model <- function(data, curveid = NULL, separate = FALSE, upperl = NULL) {
@@ -513,24 +518,36 @@ fit_tte_model <- function(data, curveid = NULL, separate = FALSE, upperl = NULL)
 ## create list of modeling scenarios ## 
 model_specs <- list(
   overall = list(curveid = NULL, separate = FALSE, upperl = NULL),
-  treatment = list(curveid = quote(Treatment), separate = FALSE, upperl = c(NA, NA, NA, NA, 1, 1, 1, 1, NA, NA, NA, NA)),
-  region = list(curveid = quote(Region), separate = FALSE, upperl = NULL),
+  # Notice upperl now only has 9 values, with the middle 3 capped at 1 for max germination
+  treatment = list(curveid = quote(Treatment), separate = TRUE, upperl = c(NA, NA, NA, 1, 1, 1, NA, NA, NA)),
+  region = list(curveid = quote(Region), separate = TRUE, upperl = NULL),
   region_treatment = list(curveid = quote(Region:Treatment), separate = TRUE, upperl = NULL)
 )
 
-## apply function over list : NB: this will take several minutes
-model_fits <- lapply(model_specs, function(spec) {
-  fit_tte_model(
-    data = tte_data,
-    curveid = if (is.null(spec$curveid)) NULL else eval(spec$curveid, envir = tte_data),
-    separate = spec$separate,
-    upperl = spec$upperl
-  )
+## apply function over list with a tryCatch to prevent fatal crashes
+model_fits <- lapply(names(model_specs), function(spec_name) {
+  spec <- model_specs[[spec_name]]
+  
+  cat("Attempting to fit model:", spec_name, "...\n")
+  
+  tryCatch({
+    fit_tte_model(
+      data = tte_data,
+      curveid = if (is.null(spec$curveid)) NULL else eval(spec$curveid, envir = tte_data),
+      separate = spec$separate,
+      upperl = spec$upperl
+    )
+  }, error = function(e) {
+    # If the model fails, print the error but keep the loop alive
+    cat(">>> Model '", spec_name, "' failed to converge.\n>>> Error:", conditionMessage(e), "\n\n")
+    return(NULL)
+  })
 })
 
-## Access summaries: "$overall" "$treatment" "$region" and "$region_treatment"
-summary(model_fits$region_treatment, robust = TRUE, units = Units)
+# Reassign the names to the list so you can call them via model_fits$overall, etc.
+names(model_fits) <- names(model_specs)
 
+cat("\n--- Model Fitting Complete ---\n")
 
 # Loop over model list and save diagnostics to .txt files
 for (model_name in names(model_fits)) {
